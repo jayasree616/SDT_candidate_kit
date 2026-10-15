@@ -388,14 +388,18 @@ def punch_out(body: PunchOutIn):
     ts = epoch_ms_to_datetime(
         body.punched_at if body.punched_at is not None else now_ms
     )
-
     record = db.attendance_logs.find_one(
-        {
-            "emp_code": body.emp_code,
-            "punch_in": {"$ne": None, "$lte": ts},
+    {
+        "emp_code": body.emp_code,
+        "punch_in": {
+            "$type": "date",
+            "$lte": ts,
         },
-        sort=[("punch_in", DESCENDING)],
-    )
+        "punch_out": None,
+    },
+    sort=[("punch_in", DESCENDING)],
+)
+
 
     if record is None:
         raise HTTPException(status_code=404, detail="No punch-in found")
@@ -645,7 +649,11 @@ def build_employee_monthly_pipelines(
                     "$dateFromString": {"dateString": month_end}
                 },
                 "_joined": {
-                    "$dateFromString": {"dateString": "$joined_on"}
+                    "$dateFromString": {
+                           "dateString": "$joined_on",
+                            "onError": None,
+                            "onNull": None
+                    }
                 },
             }
         },
@@ -820,7 +828,9 @@ def employee_monthly(
                 },
                 "_joined": {
                     "$dateFromString": {
-                        "dateString": "$joined_on"
+                        "dateString": "$joined_on",
+                        "onError": None,
+                        "onNull": None
                     }
                 },
             }
@@ -922,7 +932,9 @@ def employee_monthly(
             "$set": {
                 "_calendar_date": {
                     "$dateFromString": {
-                        "dateString": "$date"
+                        "dateString": "$date",
+                        "onError": None,
+                        "onNull": None
                     }
                 },
                 "_late": {"$ifNull": ["$late_minutes", 0]},
